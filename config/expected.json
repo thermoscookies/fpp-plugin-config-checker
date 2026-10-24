@@ -3,18 +3,9 @@
     "config_txt": "/boot/firmware/config.txt",
     "cmdline_txt": "/boot/firmware/cmdline.txt",
     "fpp_settings": "/home/fpp/media/config/plugin.FPP-Plugin-Projector-Control",
-    "serial_device": "/dev/ttyUSB0",
     "baseline": "/home/fpp/media/config/plugin.fpp-plugin-config-checker.baseline.json"
   },
-  "composite_overlay": "dtoverlay=vc4-kms-v3d,composite",
+  "composite_overlay": "dtoverlay=vc4-kms-v3d,composite,cma-256",
   "kernel_argument": "video=Composite-1:720x480@60ie",
-  "projector_control": {
-    "enabled": "1",
-    "projector": "Panasonic_PT_F200",
-    "device": "ttyUSB0",
-    "baud_rate": "9600",
-    "char_bits": "8",
-    "stop_bits": "1",
-    "parity": "none"
-  }
+  "projector_control_device": "ttyUSB0"
 }

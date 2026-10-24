@@ -2,13 +2,13 @@
 
 Standalone, read-only FPP 10.3 plugin for checking Raspberry Pi composite-video and Projector Control configuration.
 
-It checks `/boot/firmware/config.txt`, `/boot/firmware/cmdline.txt`, Projector Control settings in `/home/fpp/media/config/plugin.FPP-Plugin-Projector-Control`, and `/dev/ttyUSB0`. Expected values are editable in `config/expected.json`.
+It checks only `/boot/firmware/config.txt`, `/boot/firmware/cmdline.txt`, and the `DEVICE` setting in `/home/fpp/media/config/plugin.FPP-Plugin-Projector-Control`. Expected values are editable in `config/expected.json`.
 
 Run tests with `php tests/run.php`.
 
 The plugin does not edit system configuration, install packages, reboot, change Projector Control, or modify FPP core/Extended File Manager. Save Baseline is the only write operation: it atomically creates `/home/fpp/media/config/plugin.fpp-plugin-config-checker.baseline.json`, requires explicit confirmation, and refuses to overwrite an existing baseline.
 
-Projector Control's current `functions.inc.php` contains a separate upstream behavior where its script-generation path writes the parity value using the `STOP_BITS` key. This checker does not modify that plugin; if that behavior affects a device, the checker will report the resulting settings and the repair remains manual.
+The overlay matcher accepts the same comma-separated overlay parameters in any order and ignores trailing inline comments. Projector Control values are compared after removing matching single or double quotes.
 
 ## FPP home-page warning limitation
 

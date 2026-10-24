@@ -15,12 +15,41 @@ function cc_result(string $id, string $label, $actual, $expected, string $repair
     return compact('id', 'label', 'actual', 'expected', 'state', 'repair');
 }
 
+function cc_normalize_overlay(string $line): ?array {
+    $line = preg_replace('/\s+#.*$/', '', trim($line));
+    if (!preg_match('/^dtoverlay\s*=\s*(.+)$/i', $line, $match)) return null;
+    $parts = array_values(array_filter(array_map('trim', explode(',', $match[1])), static fn(string $part): bool => $part !== ''));
+    if (!$parts) return null;
+    $normalized = array_map('strtolower', $parts);
+    sort($normalized, SORT_STRING);
+    return ['display' => $line, 'tokens' => $normalized];
+}
+
+function cc_overlay_matches(string $actual, string $expected): ?string {
+    $expectedOverlay = cc_normalize_overlay($expected);
+    if ($expectedOverlay === null) return null;
+    foreach (preg_split('/\R/', $actual) as $line) {
+        $candidate = cc_normalize_overlay($line);
+        if ($candidate !== null && $candidate['tokens'] === $expectedOverlay['tokens']) return $candidate['display'];
+    }
+    return null;
+}
+
+function cc_unquote(string $value): string {
+    $value = trim($value);
+    $length = strlen($value);
+    if ($length >= 2 && (($value[0] === '"' && $value[$length - 1] === '"') || ($value[0] === "'" && $value[$length - 1] === "'"))) {
+        return substr($value, 1, -1);
+    }
+    return $value;
+}
+
 function cc_settings(string $path): array {
     $read = cc_read($path);
     if ($read['state'] !== 'available') return $read;
     $values = [];
     foreach (preg_split('/\R/', $read['value']) as $line) {
-        if (preg_match('/^\s*([^=]+)=(.*)\s*$/', $line, $m)) $values[trim($m[1])] = trim($m[2]);
+        if (preg_match('/^\s*([^=]+)=(.*)\s*$/', $line, $m)) $values[trim($m[1])] = cc_unquote($m[2]);
     }
     return ['state' => 'available', 'value' => $values, 'error' => null];
 }
@@ -46,15 +75,14 @@ function cc_check(array $expected, ?array $overrides = null): array {
     if ($overrides) $paths = array_replace($paths, $overrides['paths'] ?? []);
     $overlay = $expected['composite_overlay'];
     $kernel = $expected['kernel_argument'];
-    $projector = $expected['projector_control'];
     $results = [];
 
     $config = cc_read($paths['config_txt']);
     if ($config['state'] !== 'available') {
         $results[] = cc_result('composite_overlay', 'Composite KMS overlay', null, $overlay, 'Restore ' . $paths['config_txt'] . ', then add the exact line: ' . $overlay . '.', $config['state']);
     } else {
-        $actual = preg_match('/^\s*' . preg_quote($overlay, '/') . '\s*$/m', $config['value']) ? $overlay : 'Not present';
-        $results[] = cc_result('composite_overlay', 'Composite KMS overlay', $actual, $overlay, 'Edit ' . $paths['config_txt'] . ' and add the exact line: ' . $overlay . '.');
+        $actual = cc_overlay_matches($config['value'], $overlay);
+        $results[] = cc_result('composite_overlay', 'Composite KMS overlay', $actual ?? 'Not present', $overlay, 'Edit ' . $paths['config_txt'] . ' and add a dtoverlay line containing vc4-kms-v3d, composite, and cma-256.', $actual === null ? '' : 'passed');
     }
 
     $cmdline = cc_read($paths['cmdline_txt']);
@@ -66,18 +94,9 @@ function cc_check(array $expected, ?array $overrides = null): array {
     }
 
     $settings = cc_settings($paths['fpp_settings']);
-    $keys = ['enabled' => 'ENABLED', 'projector' => 'PROJECTOR', 'device' => 'DEVICE', 'baud_rate' => 'BAUD_RATE', 'char_bits' => 'CHAR_BITS', 'stop_bits' => 'STOP_BITS', 'parity' => 'PARITY'];
-    foreach ($keys as $name => $key) {
-        $actual = $settings['state'] === 'available'
-            ? ($settings['value']['Projector Control_' . $key] ?? $settings['value'][$key] ?? null)
-            : null;
-        $state = $settings['state'] === 'available' ? ($actual === null ? 'missing' : '') : $settings['state'];
-        $results[] = cc_result('projector_' . $name, 'Projector Control ' . $key, $actual, $projector[$name], 'Open Projector Control in FPP and set ' . $key . ' to ' . $projector[$name] . '.', $state);
-    }
-
-    $device = $paths['serial_device'];
-    $exists = file_exists($device);
-    $deviceState = $exists ? 'passed' : (is_readable(dirname($device)) ? 'missing' : 'unavailable');
-    $results[] = cc_result('serial_device', 'Serial device', $exists ? $device : 'Not present', $device, 'Connect the USB serial adapter and confirm that ' . $device . ' exists.', $deviceState);
+    $device = $expected['projector_control_device'];
+    $actual = $settings['state'] === 'available' ? ($settings['value']['DEVICE'] ?? null) : null;
+    $state = $settings['state'] === 'available' ? ($actual === null ? 'missing' : '') : $settings['state'];
+    $results[] = cc_result('projector_device', 'Projector Control DEVICE', $actual, $device, 'Open Projector Control in FPP and set DEVICE to ' . $device . '.', $state);
     return $results;
 }
