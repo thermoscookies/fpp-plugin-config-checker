@@ -1,0 +1,23 @@
+{
+  "repoName": "fpp-plugin-config-checker",
+  "name": "Configuration Checker",
+  "author": "FPP Plugin Config Checker",
+  "description": "Read-only Raspberry Pi checks for composite video and Projector Control.",
+  "homeURL": "https://github.com/FalconChristmas/fpp-plugin-config-checker",
+  "srcURL": "https://github.com/FalconChristmas/fpp-plugin-config-checker.git",
+  "bugURL": "https://github.com/FalconChristmas/fpp-plugin-config-checker/issues",
+  "allowUpdates": 1,
+  "privacy": {
+    "summary": "Runs on this device only; reads local FPP and Raspberry Pi configuration and optionally saves one local baseline snapshot.",
+    "sends": [],
+    "collects": [],
+    "sensors": [],
+    "remoteAccess": "none",
+    "systemChanges": [],
+    "closedCode": false,
+    "other": "No automatic repairs, reboots, configuration changes, or external network requests."
+  },
+  "versions": [
+    {"minFPPVersion": "10.3", "maxFPPVersion": "10.99", "branch": "main", "sha": "", "platforms": ["Raspberry Pi"]}
+  ]
+}
